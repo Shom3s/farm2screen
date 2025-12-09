@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "207439129688",
+    "project_id": "farm2screen",
+    "storage_bucket": "farm2screen.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:207439129688:android:91e862417550996380ae2d",
+        "android_client_info": {
+          "package_name": "com.example.farm2screen"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCvVr3XG36S3e1z_bTm_FF6OWSOVX9f5K4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

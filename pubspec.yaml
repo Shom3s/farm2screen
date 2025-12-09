@@ -1,0 +1,46 @@
+name: farm2screen
+description: "A pineapple-themed Firebase-backed app for SULAM project."
+publish_to: 'none'
+
+version: 0.1.0
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Firebase Core (required for all Firebase services)
+  firebase_core: ^3.0.0
+
+  # Firebase Authentication
+  firebase_auth: ^5.0.0
+
+  # Firestore Database
+  cloud_firestore: ^5.0.0
+
+  # Firebase Storage (FOR PRODUCT IMAGES)  <<< IMPORTANT
+  firebase_storage: ^12.0.0
+
+  # Image picker (choose photo from gallery / camera)
+  image_picker: ^1.0.7
+
+  # Supabase (for profile photo storage)
+  supabase_flutter: ^2.5.0
+
+  # UI / Tools
+  url_launcher: ^6.3.0
+  google_fonts: ^6.2.0
+  flutter_animate: ^4.5.0
+  font_awesome_flutter: ^10.7.0
+  fl_chart: ^0.69.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
