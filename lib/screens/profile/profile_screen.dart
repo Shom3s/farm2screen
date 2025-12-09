@@ -10,6 +10,7 @@ import '../../models/entrepreneur.dart';
 import '../../services/firestore_service.dart';
 import '../../services/supabase_storage_service.dart';
 import '../auth/login_screen.dart';
+import '../../theme_controller.dart'; // <— NEW
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -219,10 +220,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // THEME CONTROLLER (same pattern as LoginScreen)
+    final themeController = ThemeControllerProvider.of(context);
+    final isDark = themeController.mode == ThemeMode.dark;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profil Usahawan'),
         actions: [
+          IconButton(
+            tooltip: isDark ? 'Tukar ke tema cerah' : 'Tukar ke tema gelap',
+            icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode),
+            onPressed: themeController.toggle,
+          ),
           IconButton(
             tooltip: 'Log keluar',
             icon: const Icon(Icons.logout),
@@ -344,7 +354,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const InputDecoration(labelText: 'Penerangan ringkas'),
               maxLines: 3,
             ),
-
             const SizedBox(height: 16),
             const Text(
               'Media sosial (pilihan)',
@@ -374,7 +383,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 labelText: 'Pautan Instagram',
               ),
             ),
-
             if (_error != null) ...[
               const SizedBox(height: 12),
               Text(
@@ -468,7 +476,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ],
                 ),
-
                 if (hasAnySocial) ...[
                   const SizedBox(height: 8),
                   Row(
@@ -509,7 +516,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ],
                   ),
                 ],
-
                 const SizedBox(height: 16),
                 OutlinedButton(
                   onPressed: () {
