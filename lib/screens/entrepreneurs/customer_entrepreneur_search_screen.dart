@@ -70,7 +70,7 @@ class _CustomerEntrepreneurSearchScreenState
                       }
                     }
                   }
-                  final categories = ['Semua', ...categorySet.toList()];
+                  final categories = ['Semua', ...categorySet];
 
                   // Apply search + category filter
                   final query = _search.toLowerCase();
@@ -238,7 +238,7 @@ class _EntrepreneurCard extends StatelessWidget {
                               Chip(
                                 label: const Text('Tiada kategori'),
                                 backgroundColor: theme
-                                    .colorScheme.surfaceVariant
+                                    .colorScheme.surfaceContainerHighest
                                     .withOpacity(0.5),
                               ),
                             ]
@@ -247,7 +247,7 @@ class _EntrepreneurCard extends StatelessWidget {
                                 (c) => Chip(
                                   label: Text(c),
                                   backgroundColor:
-                                      theme.colorScheme.surfaceVariant,
+                                      theme.colorScheme.surfaceContainerHighest,
                                 ),
                               )
                               .toList(),
@@ -563,7 +563,7 @@ class CustomerEntrepreneurDetailScreen extends StatelessWidget {
                                       )
                                     : Container(
                                         color: theme
-                                            .colorScheme.surfaceVariant,
+                                            .colorScheme.surfaceContainerHighest,
                                         child: const Icon(
                                           Icons.local_mall_outlined,
                                         ),

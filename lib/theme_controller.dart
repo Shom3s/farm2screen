@@ -14,8 +14,8 @@ class ThemeControllerProvider extends InheritedNotifier<ThemeController> {
   const ThemeControllerProvider({
     super.key,
     required ThemeController controller,
-    required Widget child,
-  }) : super(notifier: controller, child: child);
+    required super.child,
+  }) : super(notifier: controller);
 
   static ThemeController of(BuildContext context) {
     final provider =

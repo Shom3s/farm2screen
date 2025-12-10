@@ -12,6 +12,13 @@ class Product {
   final bool available;
   final DateTime createdAt;
 
+  // NEW: stock quantity
+  final int stockQty;
+
+  // Convenience getters for UI
+  bool get inStock => available && stockQty > 0;
+  bool get isLowStock => inStock && stockQty <= 5;
+
   Product({
     required this.id,
     required this.entrepreneurId,
@@ -23,6 +30,7 @@ class Product {
     required this.imageUrl,
     required this.available,
     required this.createdAt,
+    required this.stockQty,
   });
 
   factory Product.fromMap(String id, Map<String, dynamic> data) {
@@ -32,6 +40,17 @@ class Product {
       created = ts.toDate();
     } else {
       created = DateTime.now();
+    }
+
+    // Handle old documents that don’t have stockQty yet
+    final dynamic rawStock = data['stockQty'];
+    int stock;
+    if (rawStock is int) {
+      stock = rawStock;
+    } else if (rawStock is double) {
+      stock = rawStock.toInt();
+    } else {
+      stock = 0;
     }
 
     return Product(
@@ -45,6 +64,7 @@ class Product {
       imageUrl: data['imageUrl'] as String?,
       available: data['available'] ?? true,
       createdAt: created,
+      stockQty: stock,
     );
   }
 
@@ -59,6 +79,7 @@ class Product {
       'imageUrl': imageUrl,
       'available': available,
       'createdAt': createdAt,
+      'stockQty': stockQty, // NEW
     };
   }
 }

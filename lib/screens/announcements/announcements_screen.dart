@@ -50,7 +50,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
     if (t.contains('pasar') || t.contains('harga')) {
       return scheme.primaryContainer;
     }
-    return scheme.surfaceVariant;
+    return scheme.surfaceContainerHighest;
   }
 
   Future<void> _openNewAnnouncementSheet() async {
@@ -107,7 +107,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: type,
+                  initialValue: type,
                   decoration: const InputDecoration(
                     labelText: 'Kategori',
                   ),

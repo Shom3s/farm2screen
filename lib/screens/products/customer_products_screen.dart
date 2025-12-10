@@ -137,7 +137,7 @@ class _CustomerProductsScreenState extends State<CustomerProductsScreen> {
                               },
                             ),
                           );
-                        }).toList(),
+                        }),
                       ],
                     ),
                   ),
@@ -202,6 +202,17 @@ class _ProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final hasImage = product.imageUrl != null && product.imageUrl!.isNotEmpty;
+
+    // Stock logic
+    final bool inStock =
+        product.available && (product.stockQty > 0); // needs stockQty field
+    final bool isLowStock = inStock && product.stockQty <= 5;
+
+    final String stockText =
+        inStock ? 'Stok: ${product.stockQty} ${product.unit}' : 'Habis stok';
+    final Color stockColor = inStock
+        ? (isLowStock ? Colors.orangeAccent : theme.colorScheme.primary)
+        : theme.colorScheme.error;
 
     return GestureDetector(
       onTap: onOpenDetail,
@@ -289,6 +300,33 @@ class _ProductCard extends StatelessWidget {
                         ),
                       ),
                     ),
+                    // Extra: ribbon for low stock
+                    if (isLowStock)
+                      Positioned(
+                        left: 0,
+                        top: 10,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.95),
+                            borderRadius: const BorderRadius.only(
+                              topRight: Radius.circular(12),
+                              bottomRight: Radius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'Stok rendah',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -309,6 +347,17 @@ class _ProductCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12,
                   color: theme.colorScheme.outline,
+                ),
+              ),
+              const SizedBox(height: 4),
+
+              // Stock row
+              Text(
+                stockText,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: stockColor,
                 ),
               ),
               const SizedBox(height: 8),
@@ -336,18 +385,22 @@ class _ProductCard extends StatelessWidget {
                     ],
                   ),
                   InkWell(
-                    onTap: onAddToCart,
+                    onTap: inStock ? onAddToCart : null,
                     borderRadius: BorderRadius.circular(16),
                     child: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.primary,
+                        color: inStock
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.surfaceVariant,
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.add_shopping_cart_outlined,
                         size: 18,
-                        color: Colors.white,
+                        color: inStock
+                            ? Colors.white
+                            : theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ),
@@ -412,6 +465,12 @@ class ProductDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final hasImage = product.imageUrl != null && product.imageUrl!.isNotEmpty;
+
+    final bool inStock =
+        product.available && (product.stockQty > 0);
+    final String stockText = inStock
+        ? 'Stok tersedia: ${product.stockQty} ${product.unit}'
+        : 'Habis stok buat masa ini';
 
     return Scaffold(
       appBar: AppBar(
@@ -499,6 +558,32 @@ class ProductDetailScreen extends StatelessWidget {
                     ),
                   ],
                 ),
+                const SizedBox(height: 8),
+
+                // Stock info
+                Row(
+                  children: [
+                    Icon(
+                      inStock
+                          ? Icons.check_circle_outline
+                          : Icons.error_outline,
+                      size: 18,
+                      color: inStock
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.error,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      stockText,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        color: inStock
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.error,
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 16),
 
                 // Seller section
@@ -558,9 +643,9 @@ class ProductDetailScreen extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 Text(
-                   product.description.trim().isNotEmpty
+                  product.description.trim().isNotEmpty
                       ? product.description
                       : 'Tiada penerangan produk.',
                   textAlign: TextAlign.justify,
@@ -667,16 +752,18 @@ class ProductDetailScreen extends StatelessWidget {
             height: 48,
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: () {
-                cartService.add(product);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Produk ditambah ke troli.'),
-                  ),
-                );
-              },
+              onPressed: inStock
+                  ? () {
+                      cartService.add(product);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Produk ditambah ke troli.'),
+                        ),
+                      );
+                    }
+                  : null,
               icon: const Icon(Icons.add_shopping_cart_outlined),
-              label: const Text('Tambah ke troli'),
+              label: Text(inStock ? 'Tambah ke troli' : 'Habis stok'),
             ),
           ),
         ),

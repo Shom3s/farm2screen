@@ -146,7 +146,7 @@ class _CartItemTile extends StatelessWidget {
               height: 52,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
-                color: theme.colorScheme.surfaceVariant.withOpacity(0.6),
+                color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.6),
                 image: hasImage
                     ? DecorationImage(
                         image: NetworkImage(item.product.imageUrl!),

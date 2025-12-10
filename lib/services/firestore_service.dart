@@ -156,15 +156,85 @@ class FirestoreService {
     required String entrepreneurId,
     required List<m.OrderLine> lines,
   }) async {
-    final total =
-        lines.fold<double>(0, (previous, line) => previous + line.lineTotal);
+    await _db.runTransaction((txn) async {
+      // 1) Validate stock for each product
+      final Map<String, DocumentSnapshot<Map<String, dynamic>>> productSnaps =
+          {};
 
-    await ordersRef.add({
-      'customerUid': customerUid,
-      'entrepreneurId': entrepreneurId,
-      'total': total,
-      'createdAt': FieldValue.serverTimestamp(),
-      'lines': lines.map((l) => l.toMap()).toList(),
+      for (final line in lines) {
+        final prodRef = productsRef.doc(line.productId);
+        final snap = await txn.get(prodRef);
+
+        if (!snap.exists) {
+          throw Exception(
+            'Produk "${line.productName}" tidak lagi wujud dalam sistem.',
+          );
+        }
+
+        productSnaps[line.productId] = snap;
+
+        final data = snap.data()!;
+        final rawStock = data['stockQty'];
+        int currentStock;
+
+        if (rawStock is int) {
+          currentStock = rawStock;
+        } else if (rawStock is double) {
+          currentStock = rawStock.toInt();
+        } else {
+          currentStock = 0;
+        }
+
+        if (currentStock < line.quantity) {
+          throw Exception(
+            'Stok tidak mencukupi untuk "${line.productName}". '
+            'Baki stok: $currentStock.',
+          );
+        }
+      }
+
+      // 2) Compute total
+      final total = lines.fold<double>(
+        0,
+        (sum, line) => sum + line.lineTotal,
+      );
+
+      // 3) Create order document
+      final orderRef = ordersRef.doc();
+      final orderCode = 'ORD${DateTime.now().millisecondsSinceEpoch}';
+
+      txn.set(orderRef, {
+        'code': orderCode,
+        'customerUid': customerUid,
+        'entrepreneurId': entrepreneurId,
+        'total': total,
+        'createdAt': FieldValue.serverTimestamp(),
+        'status': 'processing',
+        'lines': lines.map((l) => l.toMap()).toList(),
+      });
+
+      // 4) Decrease stock for each product
+      for (final line in lines) {
+        final prodRef = productsRef.doc(line.productId);
+        final snap = productSnaps[line.productId]!;
+        final data = snap.data()!;
+        final rawStock = data['stockQty'];
+
+        int currentStock;
+        if (rawStock is int) {
+          currentStock = rawStock;
+        } else if (rawStock is double) {
+          currentStock = rawStock.toInt();
+        } else {
+          currentStock = 0;
+        }
+
+        final newStock = currentStock - line.quantity;
+        txn.update(prodRef, {
+          'stockQty': newStock,
+          'available': newStock > 0,
+        });
+      }
     });
   }
 

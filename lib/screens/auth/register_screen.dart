@@ -87,7 +87,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               DropdownButtonFormField<UserRole>(
                 decoration:
                     const InputDecoration(labelText: 'Peranan pengguna'),
-                value: _role,
+                initialValue: _role,
                 items: const [
                   DropdownMenuItem(
                     value: UserRole.entrepreneur,
