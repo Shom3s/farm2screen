@@ -11,6 +11,7 @@ import '../products/customer_products_screen.dart';
 import '../products/products_screen.dart';
 import '../profile/customer_profile_screen.dart';
 import '../profile/profile_screen.dart';
+import '../entrepreneurs/customer_entrepreneur_search_screen.dart'; // NEW
 
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
@@ -72,6 +73,7 @@ class _HomeShellState extends State<HomeShell> {
 
     final isEntrepreneur = _role == UserRole.entrepreneur;
 
+    // TAB SUSUNAN USAHAWAN (sama seperti sebelum ini)
     final entrepreneurScreens = <Widget>[
       const ProductsScreen(),
       const AnnouncementsScreen(),
@@ -79,15 +81,16 @@ class _HomeShellState extends State<HomeShell> {
       const ProfileScreen(),
     ];
 
+    // TAB SUSUNAN PELANGGAN – TAMBAH TAB USAHAWAN DI SEBELAH TROLI
     final customerScreens = <Widget>[
-      const CustomerProductsScreen(),
-      const AnnouncementsScreen(),
-      CartScreen(cartService: _cart),
-      const CustomerProfileScreen(),
+      const CustomerProductsScreen(),                 // index 0
+      const AnnouncementsScreen(),                   // index 1
+      CartScreen(cartService: _cart),                // index 2 (Troli)
+      const CustomerEntrepreneurSearchScreen(),      // index 3 (Usahawan)
+      const CustomerProfileScreen(),                 // index 4 (Profil)
     ];
 
-    final screens =
-        isEntrepreneur ? entrepreneurScreens : customerScreens;
+    final screens = isEntrepreneur ? entrepreneurScreens : customerScreens;
 
     return Scaffold(
       body: IndexedStack(
@@ -100,7 +103,7 @@ class _HomeShellState extends State<HomeShell> {
           final cartCount =
               _cart.items.fold<int>(0, (sum, item) => sum + item.quantity);
 
-          // Items for usahawan
+          // Items untuk usahawan (tidak berubah)
           const entrepreneurItems = <BottomNavigationBarItem>[
             BottomNavigationBarItem(
               icon: Icon(Icons.inventory_2_outlined),
@@ -120,7 +123,7 @@ class _HomeShellState extends State<HomeShell> {
             ),
           ];
 
-          // Items for customer – show badge with cartCount
+          // Items untuk pelanggan – dengan badge di Troli dan tab Usahawan
           final customerItems = <BottomNavigationBarItem>[
             const BottomNavigationBarItem(
               icon: Icon(Icons.storefront_outlined),
@@ -142,8 +145,7 @@ class _HomeShellState extends State<HomeShell> {
                       child: Container(
                         padding: const EdgeInsets.all(2),
                         decoration: BoxDecoration(
-                          color:
-                              Theme.of(context).colorScheme.error,
+                          color: Theme.of(context).colorScheme.error,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         constraints: const BoxConstraints(
@@ -166,6 +168,10 @@ class _HomeShellState extends State<HomeShell> {
               label: 'Troli',
             ),
             const BottomNavigationBarItem(
+              icon: Icon(Icons.groups_outlined),
+              label: 'Usahawan',
+            ),
+            const BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
               label: 'Profil',
             ),
@@ -175,9 +181,7 @@ class _HomeShellState extends State<HomeShell> {
             currentIndex: _index,
             onTap: (i) => setState(() => _index = i),
             type: BottomNavigationBarType.fixed,
-            items: isEntrepreneur
-                ? entrepreneurItems
-                : customerItems,
+            items: isEntrepreneur ? entrepreneurItems : customerItems,
           );
         },
       ),

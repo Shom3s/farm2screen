@@ -91,6 +91,18 @@ class FirestoreService {
     }
   }
 
+  /// Senarai semua usahawan (digunakan untuk carian pelanggan).
+  Stream<List<Entrepreneur>> entrepreneursStream() {
+    return entrepreneursRef
+        .orderBy('name')
+        .snapshots()
+        .map((snap) {
+      return snap.docs
+          .map((d) => Entrepreneur.fromMap(d.id, d.data()))
+          .toList();
+    });
+  }
+
   // ----------------- CUSTOMER PROFILE -----------------
 
   Future<Customer?> getCustomerByOwner(String uid) async {
