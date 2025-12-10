@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../models/order.dart' as m;
+import '../../models/customer.dart'; // NEW
 import '../../services/firestore_service.dart';
 
 class EntrepreneurAnalyticsScreen extends StatefulWidget {
@@ -66,8 +67,8 @@ class _EntrepreneurAnalyticsScreenState
               _filterOrdersByRange(allOrders, _rangeIndex);
 
           // ----------------- BASIC METRICS -----------------
-          final totalRevenue = filteredOrders
-              .fold<double>(0, (sum, o) => sum + o.total);
+          final totalRevenue =
+              filteredOrders.fold<double>(0, (sum, o) => sum + o.total);
           final totalOrders = filteredOrders.length;
           final averageOrder =
               totalOrders == 0 ? 0.0 : totalRevenue / totalOrders;
@@ -116,8 +117,7 @@ class _EntrepreneurAnalyticsScreenState
                       Expanded(
                         child: _MetricCard(
                           title: 'Purata nilai\npesanan',
-                          value:
-                              'RM ${averageOrder.toStringAsFixed(2)}',
+                          value: 'RM ${averageOrder.toStringAsFixed(2)}',
                           subtitle: 'Setiap pesanan',
                           icon: Icons.trending_up_rounded,
                         ),
@@ -284,8 +284,7 @@ class _TotalRevenueCard extends StatelessWidget {
                       height: 56,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(18),
-                        color: theme.colorScheme.onPrimary
-                            .withOpacity(0.08),
+                        color: theme.colorScheme.onPrimary.withOpacity(0.08),
                       ),
                     ),
                   ),
@@ -567,7 +566,10 @@ class _RecentOrdersCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final latest = orders.take(5).toList();
+    final latest = orders
+        .toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final display = latest.take(5).toList();
 
     return Card(
       elevation: 2,
@@ -597,13 +599,13 @@ class _RecentOrdersCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            if (latest.isEmpty)
+            if (display.isEmpty)
               const Padding(
                 padding: EdgeInsets.only(bottom: 8),
                 child: Text('Tiada pesanan dalam julat masa ini.'),
               )
             else
-              ...latest.map((o) {
+              ...display.map((o) {
                 return ListTile(
                   dense: false,
                   contentPadding: EdgeInsets.zero,
@@ -635,6 +637,14 @@ class _RecentOrdersCard extends StatelessWidget {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            EntrepreneurOrderDetailScreen(order: o),
+                      ),
+                    );
+                  },
                 );
               }),
           ],
@@ -672,5 +682,419 @@ class _SimpleSparklinePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _SimpleSparklinePainter oldDelegate) {
     return oldDelegate.color != color;
+  }
+}
+
+/// ===============================
+/// ORDER DETAIL SCREEN (NEW)
+/// ===============================
+
+class EntrepreneurOrderDetailScreen extends StatelessWidget {
+  final m.Order order;
+  EntrepreneurOrderDetailScreen({super.key, required this.order});
+
+  final _fs = FirestoreService();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Butiran pesanan'),
+      ),
+      body: FutureBuilder<Customer?>(
+        future: _fs.getCustomerByOwner(order.customerUid),
+        builder: (context, snapshot) {
+          final customer = snapshot.data;
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _OrderSummaryHeader(order: order),
+                const SizedBox(height: 16),
+                _CustomerInfoCard(customer: customer),
+                const SizedBox(height: 16),
+                _OrderItemsCard(order: order),
+                const SizedBox(height: 16),
+                Card(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Maklumat pelanggan diambil daripada profil pelanggan. '
+                            'Anda boleh menghubungi pelanggan melalui nombor telefon atau alamat yang dipaparkan.',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.outline,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _OrderSummaryHeader extends StatelessWidget {
+  final m.Order order;
+
+  const _OrderSummaryHeader({required this.order});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    final statusLabel = order.status;
+    final statusColor = _statusColor(theme, statusLabel);
+
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              theme.colorScheme.primary,
+              theme.colorScheme.secondary,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(24),
+        ),
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Pesanan #${order.code}',
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: theme.colorScheme.onPrimary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              order.createdAtFormatted,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onPrimary.withOpacity(0.85),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Text(
+                  'RM ${order.total.toStringAsFixed(2)}',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    color: theme.colorScheme.onPrimary,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.16),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.circle,
+                        size: 8,
+                        color: statusColor,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        statusLabel,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: statusColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _statusColor(ThemeData theme, String status) {
+    final s = status.toLowerCase();
+    if (s.contains('complete') || s.contains('selesai')) {
+      return Colors.greenAccent.shade400;
+    }
+    if (s.contains('cancel')) {
+      return theme.colorScheme.error;
+    }
+    return Colors.orangeAccent;
+  }
+}
+
+class _CustomerInfoCard extends StatelessWidget {
+  final Customer? customer;
+
+  const _CustomerInfoCard({required this.customer});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    if (customer == null) {
+      return Card(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const Padding(
+          padding: EdgeInsets.all(16),
+          child: Text('Maklumat pelanggan tidak ditemui.'),
+        ),
+      );
+    }
+
+    final p = customer!;
+    ImageProvider? avatar;
+    if (p.photoUrl.isNotEmpty) {
+      avatar = NetworkImage(p.photoUrl);
+    }
+    final initial =
+        p.name.isNotEmpty ? p.name[0].toUpperCase() : '?';
+
+    return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Maklumat pelanggan',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 26,
+                  backgroundImage: avatar,
+                  child: avatar == null
+                      ? Text(
+                          initial,
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        )
+                      : null,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        p.name,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      if (p.email.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          p.email,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.outline,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Divider(),
+            const SizedBox(height: 8),
+            _InfoRow(
+              icon: Icons.phone,
+              label: 'No. telefon',
+              value: p.phone.isEmpty ? '-' : p.phone,
+            ),
+            const SizedBox(height: 6),
+            _InfoRow(
+              icon: Icons.location_on_outlined,
+              label: 'Alamat penghantaran',
+              value: p.address.isEmpty ? 'Tiada alamat' : p.address,
+              multiLine: true,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final bool multiLine;
+
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.multiLine = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Row(
+      crossAxisAlignment:
+          multiLine ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+      children: [
+        Icon(icon, size: 18),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.outline,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: theme.textTheme.bodyMedium,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _OrderItemsCard extends StatelessWidget {
+  final m.Order order;
+
+  const _OrderItemsCard({required this.order});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    final subtotal = order.total; // no shipping yet
+
+    return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Butiran pesanan',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...order.lines.map((line) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            line.productName,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${line.quantity} x RM ${line.unitPrice.toStringAsFixed(2)}',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.outline,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      'RM ${line.lineTotal.toStringAsFixed(2)}',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+            const SizedBox(height: 12),
+            const Divider(),
+            const SizedBox(height: 6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Jumlah bayaran',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  'RM ${subtotal.toStringAsFixed(2)}',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

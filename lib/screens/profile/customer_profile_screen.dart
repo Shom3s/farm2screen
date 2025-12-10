@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../models/customer.dart';
+import '../../models/order.dart' as m; // NEW
 import '../../services/firestore_service.dart';
 import '../../services/supabase_storage_service.dart';
 import '../auth/login_screen.dart';
@@ -17,8 +18,7 @@ class CustomerProfileScreen extends StatefulWidget {
       _CustomerProfileScreenState();
 }
 
-class _CustomerProfileScreenState
-    extends State<CustomerProfileScreen> {
+class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final _fs = FirestoreService();
   final _storage = SupabaseStorageService();
@@ -70,8 +70,7 @@ class _CustomerProfileScreenState
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    final picked =
-        await picker.pickImage(source: ImageSource.gallery);
+    final picked = await picker.pickImage(source: ImageSource.gallery);
     if (picked != null) {
       setState(() {
         _selectedImageFile = File(picked.path);
@@ -172,7 +171,7 @@ class _CustomerProfileScreenState
           ? const Center(child: CircularProgressIndicator())
           : _editMode
               ? _buildEditForm()
-              : _buildProfileView(),
+              : _buildProfileView(), // read-only view with purchases
     );
   }
 
@@ -254,8 +253,7 @@ class _CustomerProfileScreenState
             const SizedBox(height: 12),
             TextFormField(
               controller: _emailController,
-              decoration:
-                  const InputDecoration(labelText: 'Email'),
+              decoration: const InputDecoration(labelText: 'Email'),
               keyboardType: TextInputType.emailAddress,
             ),
             const SizedBox(height: 12),
@@ -290,139 +288,444 @@ class _CustomerProfileScreenState
     );
   }
 
-  // ---------- Read-only view ----------
+  // ---------- Read-only view + purchases ----------
 
   Widget _buildProfileView() {
     final p = _currentProfile;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return const Center(
+        child: Text('Sesi tamat. Sila log masuk semula.'),
+      );
+    }
+
     if (p == null) {
       _editMode = true;
       return _buildEditForm();
     }
 
-    ImageProvider? avatarImage;
-    if (p.photoUrl.isNotEmpty) {
-      avatarImage = NetworkImage(p.photoUrl);
-    }
+    return StreamBuilder<List<m.Order>>(
+      stream: _fs.ordersForCustomer(user.uid),
+      builder: (context, snapshot) {
+        final orders = snapshot.data ?? <m.Order>[];
 
-    final initial =
-        p.name.isNotEmpty ? p.name[0].toUpperCase() : '?';
+        final totalSpent =
+            orders.fold<double>(0, (sum, o) => sum + o.total);
+        final totalOrders = orders.length;
+        final avgOrder =
+            totalOrders == 0 ? 0.0 : totalSpent / totalOrders;
 
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(
-          child: Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 20,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+        orders.sort(
+          (a, b) => b.createdAt.compareTo(a.createdAt),
+        );
+        final lastOrder = orders.isNotEmpty ? orders.first : null;
+
+        ImageProvider? avatarImage;
+        if (p.photoUrl.isNotEmpty) {
+          avatarImage = NetworkImage(p.photoUrl);
+        }
+        final initial =
+            p.name.isNotEmpty ? p.name[0].toUpperCase() : '?';
+
+        return CustomScrollView(
+          slivers: [
+            // Header + basic profile
+            SliverToBoxAdapter(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 20,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    CircleAvatar(
-                      radius: 40,
-                      backgroundImage: avatarImage,
-                      child: avatarImage == null
-                          ? Text(
-                              initial,
-                              style: const TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 40,
+                          backgroundImage: avatarImage,
+                          child: avatarImage == null
+                              ? Text(
+                                  initial,
+                                  style: const TextStyle(
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                )
+                              : null,
+                        ),
+                        const SizedBox(width: 20),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment:
+                                CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                p.name,
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
-                            )
-                          : null,
+                              const SizedBox(height: 4),
+                              if (p.email.isNotEmpty)
+                                Text(
+                                  p.email,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey.shade700,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 20),
-                    Expanded(
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () {
+                              setState(() => _editMode = true);
+                            },
+                            child: const Text('Kemaskini profil'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Contact info
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Maklumat hubungan',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Card(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
                       child: Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            p.name,
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
+                          ListTile(
+                            dense: true,
+                            leading: const Icon(Icons.phone),
+                            title: Text(
+                              p.phone.isEmpty ? '-' : p.phone,
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          if (p.email.isNotEmpty)
-                            Text(
-                              p.email,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey.shade700,
-                              ),
+                          const Divider(height: 0),
+                          ListTile(
+                            dense: true,
+                            leading: const Icon(Icons.home),
+                            title: const Text('Alamat'),
+                            subtitle: Text(
+                              p.address.isEmpty
+                                  ? 'Tiada alamat'
+                                  : p.address,
                             ),
+                          ),
                         ],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () {
-                          setState(() => _editMode = true);
-                        },
-                        child: const Text('Kemaskini profil'),
-                      ),
-                    ),
-                  ],
+              ),
+            ),
+
+            // Purchase summary card
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: _PurchaseSummaryCard(
+                  totalSpent: totalSpent,
+                  totalOrders: totalOrders,
+                  avgOrder: avgOrder,
+                  lastOrder: lastOrder,
+                ),
+              ),
+            ),
+
+            // Orders list
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: _OrdersListCard(orders: orders),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Ringkasan pembelian: jumlah dibelanjakan, jumlah pesanan, purata dan last order.
+class _PurchaseSummaryCard extends StatelessWidget {
+  final double totalSpent;
+  final int totalOrders;
+  final double avgOrder;
+  final m.Order? lastOrder;
+
+  const _PurchaseSummaryCard({
+    required this.totalSpent,
+    required this.totalOrders,
+    required this.avgOrder,
+    required this.lastOrder,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final amountText = 'RM ${totalSpent.toStringAsFixed(2)}';
+
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              theme.colorScheme.primary.withOpacity(0.95),
+              theme.colorScheme.primaryContainer,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(24),
+        ),
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Ringkasan pembelian',
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onPrimary.withOpacity(0.85),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              amountText,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                color: theme.colorScheme.onPrimary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              totalOrders == 0
+                  ? 'Belum ada pesanan'
+                  : '$totalOrders pesanan dibuat',
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onPrimary.withOpacity(0.9),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                _SummaryChip(
+                  label: 'Purata setiap pesanan',
+                  value: 'RM ${avgOrder.toStringAsFixed(2)}',
+                ),
+                const SizedBox(width: 8),
+                _SummaryChip(
+                  label: 'Pesanan terakhir',
+                  value: lastOrder == null
+                      ? '-'
+                      : lastOrder!.createdAtFormatted,
                 ),
               ],
             ),
-          ),
+          ],
         ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 12,
+      ),
+    );
+  }
+}
+
+class _SummaryChip extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _SummaryChip({
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 10,
+          vertical: 8,
+        ),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.onPrimary.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onPrimary.withOpacity(0.85),
+              ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            const SizedBox(height: 2),
+            Text(
+              value,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Senarai pesanan + produk yang dibeli
+class _OrdersListCard extends StatelessWidget {
+  final List<m.Order> orders;
+
+  const _OrdersListCard({required this.orders});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                const Text(
-                  'Maklumat hubungan',
-                  style: TextStyle(
-                    fontSize: 16,
+                Text(
+                  'Sejarah pembelian',
+                  style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 8),
-                Card(
-                  child: Column(
-                    children: [
-                      ListTile(
-                        dense: true,
-                        leading: const Icon(Icons.phone),
-                        title: Text(
-                          p.phone.isEmpty ? '-' : p.phone,
-                        ),
-                      ),
-                      const Divider(height: 0),
-                      ListTile(
-                        dense: true,
-                        leading: const Icon(Icons.home),
-                        title: const Text('Alamat'),
-                        subtitle: Text(
-                          p.address.isEmpty
-                              ? 'Tiada alamat'
-                              : p.address,
-                        ),
-                      ),
-                    ],
+                const Spacer(),
+                Text(
+                  orders.isEmpty
+                      ? ''
+                      : '${orders.length} pesanan',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.outline,
                   ),
                 ),
               ],
             ),
-          ),
+            const SizedBox(height: 8),
+            if (orders.isEmpty)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 8),
+                child: Text(
+                  'Anda belum membuat sebarang pesanan.',
+                ),
+              )
+            else
+              ...orders.map((o) {
+                return ExpansionTile(
+                  tilePadding: EdgeInsets.zero,
+                  childrenPadding:
+                      const EdgeInsets.only(bottom: 8, left: 0, right: 0),
+                  leading: CircleAvatar(
+                    radius: 18,
+                    backgroundColor: theme.colorScheme.primary
+                        .withOpacity(0.08),
+                    child: Icon(
+                      Icons.shopping_bag_outlined,
+                      size: 18,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                  title: Text(
+                    'Pesanan #${o.code.isEmpty ? o.id.substring(0, 6) : o.code}',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: Text(
+                    '${o.createdAtFormatted} • RM ${o.total.toStringAsFixed(2)}',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.outline,
+                    ),
+                  ),
+                  children: [
+                    Column(
+                      children: o.lines.map((line) {
+                        return ListTile(
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(
+                            Icons.circle,
+                            size: 8,
+                          ),
+                          title: Text(
+                            line.productName,
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                          subtitle: Text(
+                            '${line.quantity} x RM ${line.unitPrice.toStringAsFixed(2)}',
+                            style:
+                                theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.outline,
+                            ),
+                          ),
+                          trailing: Text(
+                            'RM ${line.lineTotal.toStringAsFixed(2)}',
+                            style:
+                                theme.textTheme.labelMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                );
+              }),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
