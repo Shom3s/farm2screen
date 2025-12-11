@@ -20,6 +20,19 @@ class _ProductsScreenState extends State<ProductsScreen> {
 
   String get _entrepreneurId => FirebaseAuth.instance.currentUser!.uid;
 
+  // UI state
+  String _statusFilter = 'Semua'; // Semua, Aktif, Habis stok
+  String _searchQuery = '';
+  final TextEditingController _searchCtrl = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -33,105 +46,239 @@ class _ProductsScreenState extends State<ProductsScreen> {
         onPressed: () => _openProductForm(context),
         icon: const Icon(Icons.add),
         label: const Text('Produk baharu'),
-        elevation: 4,
+        elevation: 6,
       ),
-      body: StreamBuilder<List<Product>>(
-        stream: _fs.productsForEntrepreneur(_entrepreneurId),
-        builder: (context, snapshot) {
-          final state = snapshot.connectionState;
-
-          if (state == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Text(
-                  'Ralat memuatkan produk:\n${snapshot.error}',
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            );
-          }
-
-          final products = snapshot.data ?? <Product>[];
-
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Search bar (OUTSIDE StreamBuilder)
+            Row(
               children: [
-                // Header / summary row
-                Row(
-                  children: [
-                    Text(
-                      'Senarai produk',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest
-                            .withOpacity(0.6),
+                Expanded(
+                  child: TextField(
+                    controller: _searchCtrl,
+                    focusNode: _searchFocusNode,
+                    decoration: InputDecoration(
+                      hintText: 'Cari produk…',
+                      prefixIcon: const Icon(Icons.search),
+                      isDense: true,
+                      border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(999),
                       ),
-                      child: Text(
-                        '${products.length} item',
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
+                      suffixIcon: _searchQuery.isEmpty
+                          ? null
+                          : IconButton(
+                              icon: const Icon(Icons.close),
+                              onPressed: () {
+                                setState(() {
+                                  _searchQuery = '';
+                                  _searchCtrl.clear();
+                                });
+                                _searchFocusNode.requestFocus();
+                              },
+                            ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                Expanded(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 250),
-                    child: products.isEmpty
-                        ? _EmptyProductsState(
-                            key: const ValueKey('empty_state'),
-                            onAddTap: () => _openProductForm(context),
-                          )
-                        : ListView.separated(
-                            key: const ValueKey('product_list'),
-                            padding: const EdgeInsets.only(bottom: 80),
-                            itemCount: products.length,
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(height: 12),
-                            itemBuilder: (context, index) {
-                              final p = products[index];
-                              return Dismissible(
-                                key: ValueKey(p.id),
-                                direction: DismissDirection.endToStart,
-                                background: _buildDeleteBackground(context),
-                                confirmDismiss: (_) =>
-                                    _confirmDelete(context, p.name),
-                                onDismissed: (_) {
-                                  _fs.deleteProduct(p.id);
-                                },
-                                child: _EntrepreneurProductCard(
-                                  product: p,
-                                  onEdit: () =>
-                                      _openProductForm(context, product: p),
-                                ),
-                              );
-                            },
-                          ),
+                    onChanged: (v) {
+                      setState(() {
+                        _searchQuery = v;
+                      });
+                    },
                   ),
                 ),
               ],
             ),
-          );
-        },
+
+            const SizedBox(height: 12),
+
+            // Filter chips (also OUTSIDE StreamBuilder)
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _FilterChip(
+                    label: 'Semua',
+                    selected: _statusFilter == 'Semua',
+                    onTap: () => setState(() {
+                      _statusFilter = 'Semua';
+                    }),
+                  ),
+                  const SizedBox(width: 8),
+                  _FilterChip(
+                    label: 'Aktif',
+                    selected: _statusFilter == 'Aktif',
+                    onTap: () => setState(() {
+                      _statusFilter = 'Aktif';
+                    }),
+                  ),
+                  const SizedBox(width: 8),
+                  _FilterChip(
+                    label: 'Habis stok',
+                    selected: _statusFilter == 'Habis stok',
+                    onTap: () => setState(() {
+                      _statusFilter = 'Habis stok';
+                    }),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Everything that depends on Firestore stream
+            Expanded(
+              child: StreamBuilder<List<Product>>(
+                stream: _fs.productsForEntrepreneur(_entrepreneurId),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Text(
+                          'Ralat memuatkan produk:\n${snapshot.error}',
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    );
+                  }
+
+                  final products = snapshot.data ?? <Product>[];
+
+                  // Stats
+                  final totalItems = products.length;
+                  final activeItems =
+                      products.where((p) => p.inStock).length;
+                  final outOfStockItems =
+                      products.where((p) => !p.inStock).length;
+                  final stockValue = products.fold<double>(
+                    0,
+                    (sum, p) => sum + (p.price * p.stockQty),
+                  );
+
+                  // Filtering (uses state from outside)
+                  final q = _searchQuery.trim().toLowerCase();
+                  final filtered = products.where((p) {
+                    final matchesStatus = switch (_statusFilter) {
+                      'Aktif' => p.inStock,
+                      'Habis stok' => !p.inStock,
+                      _ => true,
+                    };
+
+                    final name = p.name.toLowerCase();
+                    final category = p.category.toLowerCase();
+                    final matchesSearch =
+                        q.isEmpty || name.contains(q) || category.contains(q);
+
+                    return matchesStatus && matchesSearch;
+                  }).toList();
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header + stats
+                      Text(
+                        'Ringkasan produk ($totalItems)',
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: theme.colorScheme.outline,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _SummaryChip(
+                              label: 'Produk aktif',
+                              value: '$activeItems',
+                              icon: Icons.check_circle_outline,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _SummaryChip(
+                              label: 'Habis stok',
+                              value: '$outOfStockItems',
+                              icon: Icons.error_outline,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _SummaryChip(
+                              label: 'Nilai stok',
+                              value: 'RM ${stockValue.toStringAsFixed(2)}',
+                              icon: Icons.inventory_2_outlined,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // List / empty / no results
+                      Expanded(
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 250),
+                          child: products.isEmpty
+                              ? _EmptyProductsState(
+                                  key: const ValueKey('empty_state'),
+                                  onAddTap: () => _openProductForm(context),
+                                )
+                              : filtered.isEmpty
+                                  ? _NoResultsState(
+                                      key:
+                                          const ValueKey('no_results_state'),
+                                      resetFilters: () {
+                                        setState(() {
+                                          _searchQuery = '';
+                                          _searchCtrl.clear();
+                                          _statusFilter = 'Semua';
+                                        });
+                                        _searchFocusNode.requestFocus();
+                                      },
+                                    )
+                                  : ListView.separated(
+                                      key: const ValueKey('product_list'),
+                                      padding:
+                                          const EdgeInsets.only(bottom: 80),
+                                      itemCount: filtered.length,
+                                      separatorBuilder: (_, __) =>
+                                          const SizedBox(height: 12),
+                                      itemBuilder: (context, index) {
+                                        final p = filtered[index];
+                                        return Dismissible(
+                                          key: ValueKey(p.id),
+                                          direction:
+                                              DismissDirection.endToStart,
+                                          background:
+                                              _buildDeleteBackground(context),
+                                          confirmDismiss: (_) =>
+                                              _confirmDelete(
+                                                  context, p.name),
+                                          onDismissed: (_) {
+                                            _fs.deleteProduct(p.id);
+                                          },
+                                          child: _EntrepreneurProductCard(
+                                            product: p,
+                                            onEdit: () => _openProductForm(
+                                              context,
+                                              product: p,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -183,13 +330,12 @@ class _ProductsScreenState extends State<ProductsScreen> {
   void _openProductForm(BuildContext context, {Product? product}) {
     final nameCtrl = TextEditingController(text: product?.name ?? '');
     final descCtrl = TextEditingController(text: product?.description ?? '');
-    final categoryCtrl = TextEditingController(text: product?.category ?? '');
+    final categoryCtrl =
+        TextEditingController(text: product?.category ?? '');
     final priceCtrl = TextEditingController(
       text: product != null ? product.price.toStringAsFixed(2) : '',
     );
     final unitCtrl = TextEditingController(text: product?.unit ?? 'unit');
-
-    // NEW: controller stok
     final stockCtrl = TextEditingController(
       text: product != null ? product.stockQty.toString() : '',
     );
@@ -237,7 +383,6 @@ class _ProductsScreenState extends State<ProductsScreen> {
               String? imageUrl = product?.imageUrl;
 
               try {
-                // Upload ke Supabase jika ada gambar baru
                 if (selectedImageFile != null) {
                   final client = Supabase.instance.client;
                   const bucketName = 'product-pictures';
@@ -272,7 +417,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                     imageUrl: imageUrl,
                     available: true,
                     createdAt: DateTime.now(),
-                    stockQty: stockQty, // NEW
+                    stockQty: stockQty,
                   );
                   await _fs.addProduct(p);
                 } else {
@@ -289,7 +434,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                     imageUrl: imageUrl,
                     available: product.available,
                     createdAt: product.createdAt,
-                    stockQty: stockQty, // NEW
+                    stockQty: stockQty,
                   );
                   await _fs.updateProduct(updated);
                 }
@@ -326,7 +471,6 @@ class _ProductsScreenState extends State<ProductsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Drag handle + title row
                       Center(
                         child: Container(
                           width: 36,
@@ -358,7 +502,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       ),
                       const SizedBox(height: 12),
 
-                      // PICK / PREVIEW IMAGE
+                      // Image picker
                       GestureDetector(
                         onTap: pickImage,
                         child: Container(
@@ -473,7 +617,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
                                   return 'Masukkan harga';
                                 }
                                 final d = double.tryParse(
-                                    v.replaceAll(',', '.'));
+                                  v.replaceAll(',', '.'),
+                                );
                                 if (d == null) {
                                   return 'Format nombor tidak sah';
                                 }
@@ -495,7 +640,6 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       ),
 
                       const SizedBox(height: 16),
-                      // NEW: stok
                       Text(
                         'Inventori',
                         style: theme.textTheme.labelLarge?.copyWith(
@@ -560,6 +704,99 @@ class _ProductsScreenState extends State<ProductsScreen> {
   }
 }
 
+/// Summary stat chip
+class _SummaryChip extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+
+  const _SummaryChip({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.7),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 14,
+            backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
+            child: Icon(
+              icon,
+              size: 16,
+              color: theme.colorScheme.primary,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.outline,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Filter chip used for status filter
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _FilterChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => onTap(),
+      selectedColor: theme.colorScheme.primary.withOpacity(0.2),
+      labelStyle: theme.textTheme.labelMedium?.copyWith(
+        color:
+            selected ? theme.colorScheme.primary : theme.colorScheme.onSurface,
+        fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(999),
+      ),
+    );
+  }
+}
+
+/// Product card (refined layout)
 class _EntrepreneurProductCard extends StatelessWidget {
   final Product product;
   final VoidCallback onEdit;
@@ -578,9 +815,15 @@ class _EntrepreneurProductCard extends StatelessWidget {
     final stockText = product.inStock
         ? 'Stok: ${product.stockQty} ${product.unit}'
         : 'Habis stok';
-    final stockColor = product.inStock
-        ? theme.colorScheme.primary
-        : theme.colorScheme.error;
+    final stockColor =
+        product.inStock ? theme.colorScheme.primary : theme.colorScheme.error;
+
+    final badgeColor = product.inStock
+        ? theme.colorScheme.primary.withOpacity(0.12)
+        : theme.colorScheme.error.withOpacity(0.12);
+    final badgeTextColor =
+        product.inStock ? theme.colorScheme.primary : theme.colorScheme.error;
+    final badgeLabel = product.inStock ? 'Aktif' : 'Habis stok';
 
     return Card(
       elevation: 3,
@@ -597,8 +840,8 @@ class _EntrepreneurProductCard extends StatelessWidget {
             children: [
               // Thumbnail
               Container(
-                width: 72,
-                height: 72,
+                width: 78,
+                height: 78,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(18),
                   color: theme.colorScheme.surfaceContainerHighest
@@ -624,22 +867,53 @@ class _EntrepreneurProductCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      product.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                    // Top row: name + status badge
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            product.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: badgeColor,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            badgeLabel,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: badgeTextColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
+
                     const SizedBox(height: 4),
+
+                    // Price
                     Text(
                       'RM ${product.price.toStringAsFixed(2)} / ${product.unit}',
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
+
                     const SizedBox(height: 2),
+
+                    // Category
                     Text(
                       product.category.isNotEmpty
                           ? product.category
@@ -648,7 +922,10 @@ class _EntrepreneurProductCard extends StatelessWidget {
                         color: theme.colorScheme.outline,
                       ),
                     ),
-                    const SizedBox(height: 4),
+
+                    const SizedBox(height: 6),
+
+                    // Stock row
                     Row(
                       children: [
                         Icon(
@@ -671,8 +948,11 @@ class _EntrepreneurProductCard extends StatelessWidget {
                 ),
               ),
 
+              const SizedBox(width: 4),
+
+              // Edit icon
               IconButton(
-                icon: const Icon(Icons.edit_outlined),
+                icon: const Icon(Icons.more_vert),
                 onPressed: onEdit,
                 tooltip: 'Kemaskini produk',
               ),
@@ -702,7 +982,6 @@ class _EmptyProductsState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Illustration icon
             Container(
               width: 80,
               height: 80,
@@ -739,6 +1018,55 @@ class _EmptyProductsState extends StatelessWidget {
               onPressed: onAddTap,
               icon: const Icon(Icons.add),
               label: const Text('Tambah produk baharu'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NoResultsState extends StatelessWidget {
+  final VoidCallback resetFilters;
+
+  const _NoResultsState({
+    super.key,
+    required this.resetFilters,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.search_off_outlined,
+              size: 48,
+              color: theme.colorScheme.outline,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Tiada produk sepadan',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Tiada produk ditemui untuk carian dan penapis semasa.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.outline,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: resetFilters,
+              child: const Text('Set semula carian & penapis'),
             ),
           ],
         ),
