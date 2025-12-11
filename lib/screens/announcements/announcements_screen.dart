@@ -36,9 +36,6 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
     });
   }
 
-  String _formatDate(DateTime d) =>
-      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
-
   Color _typeColor(String type, BuildContext context) {
     final t = type.toLowerCase();
     final scheme = Theme.of(context).colorScheme;
@@ -50,13 +47,15 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
     if (t.contains('pasar') || t.contains('harga')) {
       return scheme.primaryContainer;
     }
-    return scheme.surfaceContainerHighest;
+    // default “general” purple-ish tone
+    return const Color(0xFFB388F2);
   }
 
   Future<void> _openNewAnnouncementSheet() async {
     final titleController = TextEditingController();
     final contentController = TextEditingController();
     String type = 'Umum';
+    DateTime? selectedExpiry;
 
     final formKey = GlobalKey<FormState>();
 
@@ -68,6 +67,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
       ),
       builder: (context) {
         final bottom = MediaQuery.of(context).viewInsets.bottom;
+
         return Padding(
           padding: EdgeInsets.only(
             left: 16,
@@ -75,109 +75,161 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
             top: 16,
             bottom: bottom + 16,
           ),
-          child: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade400,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-                const Text(
-                  'Hebahan baharu',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: titleController,
-                  decoration: const InputDecoration(
-                    labelText: 'Tajuk hebahan',
-                  ),
-                  validator: (v) =>
-                      v == null || v.trim().isEmpty ? 'Masukkan tajuk' : null,
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  initialValue: type,
-                  decoration: const InputDecoration(
-                    labelText: 'Kategori',
-                  ),
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'Umum',
-                      child: Text('Umum'),
+          child: StatefulBuilder(
+            builder: (context, setModalState) {
+              return Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade400,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
                     ),
-                    DropdownMenuItem(
-                      value: 'Promosi',
-                      child: Text('Promosi'),
+                    const Text(
+                      'Hebahan baharu',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                    DropdownMenuItem(
-                      value: 'Tip / Teknik',
-                      child: Text('Tip / Teknik'),
+                    const SizedBox(height: 16),
+
+                    // Tajuk
+                    TextFormField(
+                      controller: titleController,
+                      decoration: const InputDecoration(
+                        labelText: 'Tajuk hebahan',
+                      ),
+                      validator: (v) =>
+                          v == null || v.trim().isEmpty ? 'Masukkan tajuk' : null,
                     ),
-                    DropdownMenuItem(
-                      value: 'Harga Pasaran',
-                      child: Text('Harga Pasaran'),
+                    const SizedBox(height: 12),
+
+                    // Kategori
+                    DropdownButtonFormField<String>(
+                      value: type,
+                      decoration: const InputDecoration(
+                        labelText: 'Kategori',
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'Umum',
+                          child: Text('Umum'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'Promosi',
+                          child: Text('Promosi'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'Tip / Teknik',
+                          child: Text('Tip / Teknik'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'Harga Pasaran',
+                          child: Text('Harga Pasaran'),
+                        ),
+                      ],
+                      onChanged: (v) {
+                        if (v != null) type = v;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Tarikh tamat (expiry) – date picker
+                    GestureDetector(
+                      onTap: () async {
+                        final now = DateTime.now();
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate:
+                              selectedExpiry ?? now.add(const Duration(days: 7)),
+                          firstDate: now,
+                          lastDate: DateTime(now.year + 3),
+                        );
+
+                        if (picked != null) {
+                          setModalState(() {
+                            selectedExpiry = picked;
+                          });
+                        }
+                      },
+                      child: AbsorbPointer(
+                        child: TextFormField(
+                          decoration: InputDecoration(
+                            labelText: 'Tarikh tamat',
+                            hintText: selectedExpiry == null
+                                ? 'Pilih tarikh tamat'
+                                : '${selectedExpiry!.day.toString().padLeft(2, '0')}/'
+                                  '${selectedExpiry!.month.toString().padLeft(2, '0')}/'
+                                  '${selectedExpiry!.year}',
+                            suffixIcon: const Icon(Icons.calendar_today),
+                          ),
+                          validator: (_) => selectedExpiry == null
+                              ? 'Sila pilih tarikh tamat'
+                              : null,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Kandungan
+                    TextFormField(
+                      controller: contentController,
+                      maxLines: 4,
+                      decoration: const InputDecoration(
+                        labelText: 'Kandungan hebahan',
+                      ),
+                      validator: (v) => v == null || v.trim().isEmpty
+                          ? 'Masukkan kandungan'
+                          : null,
+                    ),
+                    const SizedBox(height: 16),
+
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          if (!formKey.currentState!.validate()) return;
+
+                          final user = FirebaseAuth.instance.currentUser;
+                          final now = DateTime.now();
+
+                          final announcement = Announcement(
+                            id: '',
+                            title: titleController.text.trim(),
+                            content: contentController.text.trim(),
+                            date: now,
+                            type: type,
+                            entrepreneurId: user?.uid ?? '',
+                            // requires expiresAt in your model
+                            expiresAt: selectedExpiry,
+                          );
+
+                          try {
+                            await _fs.addAnnouncement(announcement);
+                            if (context.mounted) Navigator.of(context).pop();
+                          } catch (e) {
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Gagal menyimpan hebahan: $e'),
+                              ),
+                            );
+                          }
+                        },
+                        child: const Text('Terbitkan hebahan'),
+                      ),
                     ),
                   ],
-                  onChanged: (v) {
-                    if (v != null) type = v;
-                  },
                 ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: contentController,
-                  maxLines: 4,
-                  decoration: const InputDecoration(
-                    labelText: 'Kandungan hebahan',
-                  ),
-                  validator: (v) => v == null || v.trim().isEmpty
-                      ? 'Masukkan kandungan'
-                      : null,
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      if (!formKey.currentState!.validate()) return;
-
-                      final user = FirebaseAuth.instance.currentUser;
-                      final announcement = Announcement(
-                        id: '',
-                        title: titleController.text.trim(),
-                        content: contentController.text.trim(),
-                        date: DateTime.now(),
-                        type: type,
-                        entrepreneurId: user?.uid ?? '',
-                      );
-
-                      try {
-                        await _fs.addAnnouncement(announcement);
-                        if (context.mounted) Navigator.of(context).pop();
-                      } catch (e) {
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Gagal menyimpan hebahan: $e'),
-                          ),
-                        );
-                      }
-                    },
-                    child: const Text('Terbitkan hebahan'),
-                  ),
-                ),
-              ],
-            ),
+              );
+            },
           ),
         );
       },
@@ -186,6 +238,8 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
 
   @override
   Widget build(BuildContext context) {
+
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Hebahan & Ilmu Teknikal'),
@@ -198,8 +252,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
           }
           if (snapshot.hasError) {
             return Center(
-              child:
-                  Text('Ralat memuatkan hebahan: ${snapshot.error}'),
+              child: Text('Ralat memuatkan hebahan: ${snapshot.error}'),
             );
           }
 
@@ -245,73 +298,17 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
               ),
               Expanded(
                 child: ListView.builder(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                   itemCount: filtered.length,
                   itemBuilder: (context, index) {
                     final a = filtered[index];
+                    final color = _typeColor(a.type, context);
 
-                    return Card(
-                      elevation: 1,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          border: Border(
-                            left: BorderSide(
-                              color: _typeColor(a.type, context),
-                              width: 6,
-                            ),
-                          ),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                a.title,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.event,
-                                    size: 16,
-                                    color: Colors.grey.shade700,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    _formatDate(a.date),
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey.shade700,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  if (a.type.isNotEmpty)
-                                    Chip(
-                                      label: Text(
-                                        a.type,
-                                        style: const TextStyle(fontSize: 11),
-                                      ),
-                                      backgroundColor:
-                                          _typeColor(a.type, context),
-                                      materialTapTargetSize:
-                                          MaterialTapTargetSize.shrinkWrap,
-                                      padding: EdgeInsets.zero,
-                                    ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Text(a.content),
-                            ],
-                          ),
-                        ),
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: _AnnouncementCard(
+                        announcement: a,
+                        accentColor: color,
                       ),
                     );
                   },
@@ -321,11 +318,173 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
           );
         },
       ),
-      floatingActionButton:
-          _canPost ? FloatingActionButton(
-            onPressed: _openNewAnnouncementSheet,
-            child: const Icon(Icons.add),
-          ) : null,
+      floatingActionButton: _canPost
+          ? FloatingActionButton(
+              onPressed: _openNewAnnouncementSheet,
+              child: const Icon(Icons.add),
+            )
+          : null,
+    );
+  }
+}
+
+/// =======================
+/// Announcement card UI
+/// =======================
+
+class _AnnouncementCard extends StatelessWidget {
+  final Announcement announcement;
+  final Color accentColor;
+
+  const _AnnouncementCard({
+    required this.announcement,
+    required this.accentColor,
+  });
+
+  String _formatPretty(DateTime d) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    final m = months[d.month - 1];
+    final day = d.day.toString().padLeft(2, '0');
+    return '$m $day, ${d.year}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    final created = _formatPretty(announcement.date);
+    // Use saved expiry date if available, otherwise +9 days
+    final expiryDate = announcement.expiresAt ??
+        announcement.date.add(const Duration(days: 9));
+    final expires = _formatPretty(expiryDate);
+
+    return Card(
+      elevation: 1.5,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Stack(
+        children: [
+          // Left coloured strip
+          Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            child: Container(
+              width: 4,
+              decoration: BoxDecoration(
+                color: accentColor,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(18),
+                  bottomLeft: Radius.circular(18),
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Type pill
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: accentColor.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.menu_book_rounded,
+                        size: 14,
+                        color: Color(0xFF8A4FFF),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        announcement.type.isEmpty
+                            ? 'General'
+                            : announcement.type,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF8A4FFF),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
+                // Title
+                Text(
+                  announcement.title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF1B5E20),
+                  ),
+                ),
+
+                const SizedBox(height: 4),
+
+                // Content
+                Text(
+                  announcement.content,
+                  style: theme.textTheme.bodyMedium,
+                ),
+
+                const SizedBox(height: 10),
+
+                // Bottom row: created and expires
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.calendar_today_outlined,
+                      size: 15,
+                      color: Colors.grey,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      created,
+                      style: theme.textTheme.labelSmall
+                          ?.copyWith(color: Colors.grey),
+                    ),
+                    const SizedBox(width: 12),
+                    const Icon(
+                      Icons.schedule,
+                      size: 15,
+                      color: Colors.grey,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Expires: $expires',
+                      style: theme.textTheme.labelSmall
+                          ?.copyWith(color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

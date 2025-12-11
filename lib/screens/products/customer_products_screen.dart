@@ -392,7 +392,7 @@ class _ProductCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: inStock
                             ? theme.colorScheme.primary
-                            : theme.colorScheme.surfaceVariant,
+                            : theme.colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Icon(

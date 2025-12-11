@@ -93,10 +93,7 @@ class FirestoreService {
 
   /// Senarai semua usahawan (digunakan untuk carian pelanggan).
   Stream<List<Entrepreneur>> entrepreneursStream() {
-    return entrepreneursRef
-        .orderBy('name')
-        .snapshots()
-        .map((snap) {
+    return entrepreneursRef.orderBy('name').snapshots().map((snap) {
       return snap.docs
           .map((d) => Entrepreneur.fromMap(d.id, d.data()))
           .toList();
@@ -149,8 +146,16 @@ class FirestoreService {
     await announcementsRef.add(a.toMap());
   }
 
+    Future<void> deleteAnnouncement(String id) async {
+    await announcementsRef.doc(id).delete();
+  }
+
+
   // ----------------- ORDERS & ANALYTICS -----------------
 
+  /// Cipta pesanan + tolak stok secara transaksi.
+  ///
+  /// Status permulaan: `processing`.
   Future<void> createOrder({
     required String customerUid,
     required String entrepreneurId,
@@ -201,7 +206,8 @@ class FirestoreService {
 
       // 3) Create order document
       final orderRef = ordersRef.doc();
-      final orderCode = 'ORD${DateTime.now().millisecondsSinceEpoch}';
+      final orderCode =
+          'ORD${DateTime.now().millisecondsSinceEpoch}'; // kekalkan gaya asal
 
       txn.set(orderRef, {
         'code': orderCode,
@@ -209,7 +215,7 @@ class FirestoreService {
         'entrepreneurId': entrepreneurId,
         'total': total,
         'createdAt': FieldValue.serverTimestamp(),
-        'status': 'processing',
+        'status': 'processing', // status awal
         'lines': lines.map((l) => l.toMap()).toList(),
       });
 
@@ -235,6 +241,17 @@ class FirestoreService {
           'available': newStock > 0,
         });
       }
+    });
+  }
+
+  /// Kemas kini status pesanan (processing, accepted, ready, completed, cancelled).
+  Future<void> updateOrderStatus({
+    required String orderId,
+    required String newStatus,
+  }) async {
+    await ordersRef.doc(orderId).update({
+      'status': newStatus,
+      'updatedAt': FieldValue.serverTimestamp(),
     });
   }
 

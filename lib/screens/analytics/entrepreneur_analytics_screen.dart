@@ -2,7 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../models/order.dart' as m;
-import '../../models/customer.dart'; // NEW
+import '../../models/customer.dart';
 import '../../services/firestore_service.dart';
 
 class EntrepreneurAnalyticsScreen extends StatefulWidget {
@@ -117,7 +117,8 @@ class _EntrepreneurAnalyticsScreenState
                       Expanded(
                         child: _MetricCard(
                           title: 'Purata nilai\npesanan',
-                          value: 'RM ${averageOrder.toStringAsFixed(2)}',
+                          value:
+                              'RM ${averageOrder.toStringAsFixed(2)}',
                           subtitle: 'Setiap pesanan',
                           icon: Icons.trending_up_rounded,
                         ),
@@ -284,7 +285,8 @@ class _TotalRevenueCard extends StatelessWidget {
                       height: 56,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(18),
-                        color: theme.colorScheme.onPrimary.withOpacity(0.08),
+                        color:
+                            theme.colorScheme.onPrimary.withOpacity(0.08),
                       ),
                     ),
                   ),
@@ -566,9 +568,9 @@ class _RecentOrdersCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final latest = orders
-        .toList()
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final latest = orders.toList()..sort(
+        (a, b) => b.createdAt.compareTo(a.createdAt),
+      );
     final display = latest.take(5).toList();
 
     return Card(
@@ -686,85 +688,344 @@ class _SimpleSparklinePainter extends CustomPainter {
 }
 
 /// ===============================
-/// ORDER DETAIL SCREEN (NEW)
+/// ORDER DETAIL SCREEN + STATUS FLOW
 /// ===============================
 
-class EntrepreneurOrderDetailScreen extends StatelessWidget {
+class EntrepreneurOrderDetailScreen extends StatefulWidget {
   final m.Order order;
-  EntrepreneurOrderDetailScreen({super.key, required this.order});
 
+  const EntrepreneurOrderDetailScreen({super.key, required this.order});
+
+  @override
+  State<EntrepreneurOrderDetailScreen> createState() =>
+      _EntrepreneurOrderDetailScreenState();
+}
+
+class _EntrepreneurOrderDetailScreenState
+    extends State<EntrepreneurOrderDetailScreen> {
   final _fs = FirestoreService();
+
+  late String _status;
+  Customer? _customer;
+  bool _loadingCustomer = true;
+  bool _updatingStatus = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _status = widget.order.status;
+    _loadCustomer();
+  }
+
+  Future<void> _loadCustomer() async {
+    final c =
+        await _fs.getCustomerByOwner(widget.order.customerUid);
+    if (!mounted) return;
+    setState(() {
+      _customer = c;
+      _loadingCustomer = false;
+    });
+  }
+
+  String _statusLabel(String status) {
+    switch (status) {
+      case 'processing':
+        return 'Menunggu pengesahan';
+      case 'accepted':
+        return 'Disahkan';
+      case 'ready':
+        return 'Sedia untuk penghantaran';
+      case 'completed':
+        return 'Selesai';
+      case 'cancelled':
+        return 'Dibatalkan';
+      default:
+        return status;
+    }
+  }
+
+  Color _statusColor(BuildContext context, String status) {
+    final theme = Theme.of(context);
+    switch (status) {
+      case 'processing':
+        return Colors.orange;
+      case 'accepted':
+        return theme.colorScheme.primary;
+      case 'ready':
+        return Colors.teal;
+      case 'completed':
+        return Colors.green;
+      case 'cancelled':
+        return theme.colorScheme.error;
+      default:
+        return theme.colorScheme.outline;
+    }
+  }
+
+  String? _nextStatus(String status) {
+    switch (status) {
+      case 'processing':
+        return 'accepted';
+      case 'accepted':
+        return 'ready';
+      case 'ready':
+        return 'completed';
+      default:
+        return null;
+    }
+  }
+
+  String _nextStatusButtonLabel(String status) {
+    switch (status) {
+      case 'processing':
+        return 'Terima pesanan';
+      case 'accepted':
+        return 'Tandakan sebagai sedia';
+      case 'ready':
+        return 'Tandakan pesanan selesai';
+      default:
+        return '';
+    }
+  }
+
+  bool get _canCancel =>
+      _status == 'processing' || _status == 'accepted';
+
+  Future<void> _changeStatus(String newStatus) async {
+    setState(() => _updatingStatus = true);
+    try {
+      await _fs.updateOrderStatus(
+        orderId: widget.order.id,
+        newStatus: newStatus,
+      );
+      if (!mounted) return;
+      setState(() {
+        _status = newStatus;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Status pesanan dikemas kini ke "${_statusLabel(newStatus)}".',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal kemas kini status: $e'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _updatingStatus = false);
+      }
+    }
+  }
+
+  Future<void> _confirmAdvance() async {
+    final ns = _nextStatus(_status);
+    if (ns == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Kemas kini status pesanan'),
+        content: Text(
+          'Status pesanan akan ditukar kepada "${_statusLabel(ns)}".',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Sahkan'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _changeStatus(ns);
+    }
+  }
+
+  Future<void> _confirmCancel() async {
+    if (!_canCancel) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Batalkan pesanan?'),
+        content: const Text(
+          'Pesanan akan ditandakan sebagai dibatalkan. Pastikan anda telah memaklumkan pelanggan.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Kembali'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Batalkan pesanan'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _changeStatus('cancelled');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final order = widget.order;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Butiran pesanan'),
       ),
-      body: FutureBuilder<Customer?>(
-        future: _fs.getCustomerByOwner(order.customerUid),
-        builder: (context, snapshot) {
-          final customer = snapshot.data;
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _OrderSummaryHeader(order: order),
-                const SizedBox(height: 16),
-                _CustomerInfoCard(customer: customer),
-                const SizedBox(height: 16),
-                _OrderItemsCard(order: order),
-                const SizedBox(height: 16),
-                Card(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.info_outline,
-                          color: theme.colorScheme.primary,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            'Maklumat pelanggan diambil daripada profil pelanggan. '
-                            'Anda boleh menghubungi pelanggan melalui nombor telefon atau alamat yang dipaparkan.',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.outline,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+      bottomNavigationBar: _buildBottomBar(context),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _OrderSummaryHeader(
+              order: order,
+              status: _status,
+              statusLabel: _statusLabel(_status),
+              statusColor: _statusColor(context, _status),
             ),
-          );
-        },
+            const SizedBox(height: 16),
+            _StatusStepper(currentStatus: _status),
+            const SizedBox(height: 16),
+            if (_loadingCustomer)
+              Card(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: LinearProgressIndicator(minHeight: 2),
+                ),
+              )
+            else
+              _CustomerInfoCard(customer: _customer),
+            const SizedBox(height: 16),
+            _OrderItemsCard(order: order),
+            const SizedBox(height: 16),
+            Card(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Maklumat pelanggan diambil daripada profil pelanggan. '
+                        'Anda boleh menghubungi pelanggan melalui nombor telefon atau alamat yang dipaparkan.',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.outline,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomBar(BuildContext context) {
+    final theme = Theme.of(context);
+    final ns = _nextStatus(_status);
+    final showPrimary = ns != null;
+
+    if (!showPrimary && !_canCancel) {
+      return const SizedBox.shrink();
+    }
+
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          boxShadow: const [
+            BoxShadow(
+              blurRadius: 6,
+              offset: Offset(0, -2),
+              color: Colors.black12,
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            if (_canCancel)
+              TextButton(
+                onPressed: _updatingStatus ? null : _confirmCancel,
+                child: const Text(
+                  'Batalkan pesanan',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            const Spacer(),
+            if (showPrimary)
+              SizedBox(
+                height: 44,
+                child: ElevatedButton(
+                  onPressed: _updatingStatus ? null : _confirmAdvance,
+                  child: _updatingStatus
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(_nextStatusButtonLabel(_status)),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
 }
 
+/// Header card untuk ringkasan pesanan
 class _OrderSummaryHeader extends StatelessWidget {
   final m.Order order;
+  final String status;
+  final String statusLabel;
+  final Color statusColor;
 
-  const _OrderSummaryHeader({required this.order});
+  const _OrderSummaryHeader({
+    required this.order,
+    required this.status,
+    required this.statusLabel,
+    required this.statusColor,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
-    final statusLabel = order.status;
-    final statusColor = _statusColor(theme, statusLabel);
 
     return Card(
       elevation: 4,
@@ -813,8 +1074,10 @@ class _OrderSummaryHeader extends StatelessWidget {
                 ),
                 const Spacer(),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: statusColor.withOpacity(0.16),
                     borderRadius: BorderRadius.circular(999),
@@ -843,17 +1106,6 @@ class _OrderSummaryHeader extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  Color _statusColor(ThemeData theme, String status) {
-    final s = status.toLowerCase();
-    if (s.contains('complete') || s.contains('selesai')) {
-      return Colors.greenAccent.shade400;
-    }
-    if (s.contains('cancel')) {
-      return theme.colorScheme.error;
-    }
-    return Colors.orangeAccent;
   }
 }
 
@@ -954,7 +1206,8 @@ class _CustomerInfoCard extends StatelessWidget {
             _InfoRow(
               icon: Icons.location_on_outlined,
               label: 'Alamat penghantaran',
-              value: p.address.isEmpty ? 'Tiada alamat' : p.address,
+              value:
+                  p.address.isEmpty ? 'Tiada alamat' : p.address,
               multiLine: true,
             ),
           ],
@@ -1019,7 +1272,7 @@ class _OrderItemsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    final subtotal = order.total; // no shipping yet
+    final subtotal = order.total; // belum ada shipping
 
     return Card(
       shape: RoundedRectangleBorder(
@@ -1095,6 +1348,106 @@ class _OrderItemsCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _StatusStepper extends StatelessWidget {
+  final String currentStatus;
+
+  const _StatusStepper({required this.currentStatus});
+
+  int get _currentIndex {
+    switch (currentStatus) {
+      case 'processing':
+        return 0;
+      case 'accepted':
+        return 1;
+      case 'ready':
+        return 2;
+      case 'completed':
+        return 3;
+      case 'cancelled':
+        return 4;
+      default:
+        return 0;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final idx = _currentIndex;
+
+    final labels = [
+      'Menunggu',
+      'Disahkan',
+      'Sedia',
+      'Selesai',
+      'Batal',
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Status pesanan',
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: List.generate(labels.length, (i) {
+            final active = i <= idx && !(idx == 4 && i < 4);
+            final color = i == 4 && idx == 4
+                ? theme.colorScheme.error
+                : theme.colorScheme.primary;
+            final circleColor =
+                active ? color : theme.colorScheme.outline.withOpacity(0.4);
+
+            return Expanded(
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 20,
+                        height: 20,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: circleColor,
+                        ),
+                      ),
+                      if (i != labels.length - 1)
+                        Expanded(
+                          child: Container(
+                            height: 2,
+                            margin:
+                                const EdgeInsets.symmetric(horizontal: 4),
+                            color: i < idx
+                                ? circleColor
+                                : theme.colorScheme.outline
+                                    .withOpacity(0.2),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    labels[i],
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color:
+                          active ? circleColor : theme.colorScheme.outline,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ),
+      ],
     );
   }
 }
