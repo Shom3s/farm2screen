@@ -1,9 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../../models/order.dart' as m;
 import '../../models/user_role.dart';
 import '../../services/auth_service.dart';
 import '../../services/cart_service.dart';
+import '../../services/firestore_service.dart';
 import '../analytics/entrepreneur_analytics_screen.dart';
 import '../announcements/announcements_screen.dart';
 import '../cart/cart_screen.dart';
@@ -23,10 +25,13 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   final _authService = AuthService();
   final _cart = CartService.instance;
+  final _fs = FirestoreService();
 
   int _index = 0;
   UserRole? _role;
   bool _loadingRole = true;
+
+  bool _welcomeShown = false; // ensure popup only once
 
   @override
   void initState() {
@@ -52,6 +57,116 @@ class _HomeShellState extends State<HomeShell> {
     });
   }
 
+  Future<void> _showWelcomeIfNeeded() async {
+    if (_welcomeShown || !mounted) return;
+    if (_role != UserRole.entrepreneur) return; // ONLY entrepreneur
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    _welcomeShown = true; // mark as used
+
+    // Orders for this entrepreneur
+    List<m.Order> orders;
+    try {
+      orders = await _fs.ordersForEntrepreneur(user.uid).first;
+    } catch (_) {
+      orders = [];
+    }
+
+    final now = DateTime.now();
+    final startOfDay = DateTime(now.year, now.month, now.day);
+
+    final todaysOrders = orders.where((o) {
+      return o.createdAt.isAfter(startOfDay);
+    }).toList();
+
+    final todayCount = todaysOrders.length;
+    final todayTotal = todaysOrders.fold<double>(
+      0,
+      (sum, o) => sum + o.total,
+    );
+
+    if (!mounted) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: false,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        final theme = Theme.of(ctx);
+
+        const title = 'Ringkasan hari ini';
+        const subtitle = 'Prestasi jualan terkini untuk kedai anda.';
+
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.outlineVariant,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+              Text(
+                title,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.outline,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _WelcomeStatChip(
+                      icon: Icons.shopping_bag_outlined,
+                      label: 'Pesanan hari ini',
+                      value: todayCount.toString(),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _WelcomeStatChip(
+                      icon: Icons.payments_outlined,
+                      label: 'Nilai hari ini',
+                      value: 'RM ${todayTotal.toStringAsFixed(2)}',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  icon: const Icon(Icons.check_circle_outline),
+                  label: const Text('Teruskan'),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loadingRole) {
@@ -71,9 +186,14 @@ class _HomeShellState extends State<HomeShell> {
       );
     }
 
+    // Once role is loaded, schedule welcome popup (only once)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showWelcomeIfNeeded();
+    });
+
     final isEntrepreneur = _role == UserRole.entrepreneur;
 
-    // TAB SUSUNAN USAHAWAN (sama seperti sebelum ini)
+    // TAB SUSUNAN USAHAWAN
     final entrepreneurScreens = <Widget>[
       const ProductsScreen(),
       const AnnouncementsScreen(),
@@ -83,11 +203,11 @@ class _HomeShellState extends State<HomeShell> {
 
     // TAB SUSUNAN PELANGGAN – TAMBAH TAB USAHAWAN DI SEBELAH TROLI
     final customerScreens = <Widget>[
-      const CustomerProductsScreen(),                 // index 0
-      const AnnouncementsScreen(),                   // index 1
-      CartScreen(cartService: _cart),                // index 2 (Troli)
-      const CustomerEntrepreneurSearchScreen(),      // index 3 (Usahawan)
-      const CustomerProfileScreen(),                 // index 4 (Profil)
+      const CustomerProductsScreen(), // index 0
+      const AnnouncementsScreen(), // index 1
+      CartScreen(cartService: _cart), // index 2 (Troli)
+      const CustomerEntrepreneurSearchScreen(), // index 3 (Usahawan)
+      const CustomerProfileScreen(), // index 4 (Profil)
     ];
 
     final screens = isEntrepreneur ? entrepreneurScreens : customerScreens;
@@ -184,6 +304,65 @@ class _HomeShellState extends State<HomeShell> {
             items: isEntrepreneur ? entrepreneurItems : customerItems,
           );
         },
+      ),
+    );
+  }
+}
+
+class _WelcomeStatChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _WelcomeStatChip({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceVariant.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 14,
+            backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
+            child: Icon(
+              icon,
+              size: 16,
+              color: theme.colorScheme.primary,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.outline,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

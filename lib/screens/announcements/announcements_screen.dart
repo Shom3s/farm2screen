@@ -113,7 +113,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
 
                     // Kategori
                     DropdownButtonFormField<String>(
-                      value: type,
+                      initialValue: type,
                       decoration: const InputDecoration(
                         labelText: 'Kategori',
                       ),

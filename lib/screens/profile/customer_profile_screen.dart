@@ -28,6 +28,14 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
   final _emailController = TextEditingController();
   final _addressController = TextEditingController();
 
+  // Tukar kata laluan
+  final _passwordFormKey = GlobalKey<FormState>();
+  final _currentPasswordController = TextEditingController();
+  final _newPasswordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  String? _passwordError;
+  bool _passwordSaving = false;
+
   bool _loading = true;
   bool _editMode = true;
   String? _error;
@@ -145,12 +153,168 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
     );
   }
 
+  Future<void> _showChangePasswordDialog() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || user.email == null) return;
+
+    // reset state every time dialog opens
+    _currentPasswordController.clear();
+    _newPasswordController.clear();
+    _confirmPasswordController.clear();
+    _passwordError = null;
+    _passwordSaving = false;
+
+    await showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setStateDialog) {
+            return AlertDialog(
+              title: const Text('Tukar kata laluan'),
+              content: Form(
+                key: _passwordFormKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        controller: _currentPasswordController,
+                        decoration: const InputDecoration(
+                          labelText: 'Kata laluan semasa',
+                        ),
+                        obscureText: true,
+                        validator: (v) => v == null || v.isEmpty
+                            ? 'Masukkan kata laluan semasa'
+                            : null,
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _newPasswordController,
+                        decoration: const InputDecoration(
+                          labelText: 'Kata laluan baharu',
+                        ),
+                        obscureText: true,
+                        validator: (v) {
+                          if (v == null || v.isEmpty) {
+                            return 'Masukkan kata laluan baharu';
+                          }
+                          if (v.length < 6) {
+                            return 'Minimum 6 aksara';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _confirmPasswordController,
+                        decoration: const InputDecoration(
+                          labelText: 'Sahkan kata laluan baharu',
+                        ),
+                        obscureText: true,
+                        validator: (v) =>
+                            v != _newPasswordController.text
+                                ? 'Kata laluan tidak sepadan'
+                                : null,
+                      ),
+                      if (_passwordError != null) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          _passwordError!,
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed:
+                      _passwordSaving ? null : () => Navigator.of(ctx).pop(),
+                  child: const Text('Batal'),
+                ),
+                ElevatedButton(
+                  onPressed: _passwordSaving
+                      ? null
+                      : () async {
+                          if (!_passwordFormKey.currentState!.validate()) {
+                            return;
+                          }
+                          setStateDialog(() {
+                            _passwordSaving = true;
+                            _passwordError = null;
+                          });
+
+                          try {
+                            final cred = EmailAuthProvider.credential(
+                              email: user.email!,
+                              password:
+                                  _currentPasswordController.text.trim(),
+                            );
+                            await user.reauthenticateWithCredential(cred);
+                            await user.updatePassword(
+                              _newPasswordController.text.trim(),
+                            );
+
+                            if (!mounted) return;
+                            Navigator.of(ctx).pop();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                    'Kata laluan berjaya dikemas kini.'),
+                              ),
+                            );
+                          } on FirebaseAuthException catch (e) {
+                            setStateDialog(() {
+                              _passwordSaving = false;
+                              if (e.code == 'wrong-password') {
+                                _passwordError =
+                                    'Kata laluan semasa tidak tepat.';
+                              } else if (e.code == 'weak-password') {
+                                _passwordError =
+                                    'Kata laluan baharu terlalu lemah.';
+                              } else {
+                                _passwordError =
+                                    'Ralat: ${e.message ?? e.code}';
+                              }
+                            });
+                          } catch (_) {
+                            setStateDialog(() {
+                              _passwordSaving = false;
+                              _passwordError = 'Ralat tidak dijangka.';
+                            });
+                          }
+                        },
+                  child: _passwordSaving
+                      ? const SizedBox(
+                          height: 16,
+                          width: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Simpan'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
     _addressController.dispose();
+
+    _currentPasswordController.dispose();
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
+
     super.dispose();
   }
 
@@ -390,6 +554,13 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                               setState(() => _editMode = true);
                             },
                             child: const Text('Kemaskini profil'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _showChangePasswordDialog,
+                            child: const Text('Tukar kata laluan'),
                           ),
                         ),
                       ],
@@ -644,9 +815,7 @@ class _OrdersListCard extends StatelessWidget {
                 ),
                 const Spacer(),
                 Text(
-                  orders.isEmpty
-                      ? ''
-                      : '${orders.length} pesanan',
+                  orders.isEmpty ? '' : '${orders.length} pesanan',
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: theme.colorScheme.outline,
                   ),
@@ -669,8 +838,8 @@ class _OrdersListCard extends StatelessWidget {
                       const EdgeInsets.only(bottom: 8, left: 0, right: 0),
                   leading: CircleAvatar(
                     radius: 18,
-                    backgroundColor: theme.colorScheme.primary
-                        .withOpacity(0.08),
+                    backgroundColor:
+                        theme.colorScheme.primary.withOpacity(0.08),
                     child: Icon(
                       Icons.shopping_bag_outlined,
                       size: 18,
