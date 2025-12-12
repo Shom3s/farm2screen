@@ -58,7 +58,7 @@ The Farm2Screen application follows a client-server architecture. The mobile app
 - Version Control: Git & GitHub
 
 
-##6.0 Screenshots
+## 6.0 Screenshots
 
 ## Entrepreneur
 <img width="459" height="981" alt="image" src="https://github.com/user-attachments/assets/5c5790de-74cf-499e-879b-b514404102e8" />
