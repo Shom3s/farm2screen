@@ -29,4 +29,6 @@ At its core, the platform empowers pineapple farmers by giving them the tools to
 | 17 | Entrepreneur Details Screen | Customer | Shows detailed entrepreneur information, including contact details, business location, product categories, and available products. |
 | 18 | Customer Profile Screen | Customer | Displays customer personal information and allows profile updates, password changes, and viewing of purchase summary. |
 | 19 | Customer Purchase History Screen | Customer | Shows detailed records of past purchases, including order number, date, items purchased, and total payment amount. |
+| 20 | Social Media Integration | All Users | Allows entrepreneurs to add social media links such as WhatsApp, Facebook, and Instagram. Clicking the social media icons opens the corresponding social media account through an external application or browser for direct communication. |
+
 
