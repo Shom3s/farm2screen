@@ -1,5 +1,11 @@
 # farm2screen
 
+## E-Portfolio
+
+View the Farm2Screen project e-portfolio:  
+https://shomeswaran886.wixsite.com/farm2screen
+
+
 ## 1.0 Project Overview
 
 The Farm2screen is an innovative online marketplace designed to transform how farmers market and sell their pineapples directly to consumers, wholesalers, and businesses. Aligning with the project’s vision to transform the way people connect, shop and grow businesses online, the platform provides a convenient, trustworthy, and personalized e-commerce experience for both farmers and buyers.
