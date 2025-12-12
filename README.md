@@ -59,7 +59,6 @@ The Farm2Screen application follows a client-server architecture. The mobile app
 
 
 ## 6.0 Screenshots
-<img width="475" height="966" alt="image" src="" />
 
 ## Entrepreneur
 <p align="center"> <img src="https://github.com/user-attachments/assets/465230b3-dc5d-43fe-b5a0-29ddf3d7a831" width="220"/> <img src="https://github.com/user-attachments/assets/5c5790de-74cf-499e-879b-b514404102e8" width="220"/> <img src="https://github.com/user-attachments/assets/56afd152-b406-4c71-81a7-27fcef0a1d31" width="220"/> <img src="https://github.com/user-attachments/assets/8080c870-65ae-433a-9160-540c71ea42ed" width="220"/> <img src="https://github.com/user-attachments/assets/157f5f1f-3f3e-4831-8056-e5879b3c87ae" width="220"/> </p> <p align="center"> <img src="https://github.com/user-attachments/assets/adb47e58-c0c7-4a79-9295-96855e4dd6fd" width="220"/> <img src="https://github.com/user-attachments/assets/4048a50b-5478-4990-a56e-e10d16cc22e7" width="220"/> <img src="https://github.com/user-attachments/assets/99da3240-2a97-4e49-a3f5-1ab0bfb83942" width="220"/> <img src="https://github.com/user-attachments/assets/01f35a02-3281-4412-b2d0-5f47e8e0dd0f" width="220"/> </p>
