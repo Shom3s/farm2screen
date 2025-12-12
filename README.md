@@ -61,25 +61,10 @@ The Farm2Screen application follows a client-server architecture. The mobile app
 ## 6.0 Screenshots
 
 ## Entrepreneur
-<img width="459" height="981" alt="image" src="https://github.com/user-attachments/assets/5c5790de-74cf-499e-879b-b514404102e8" />
-<img width="455" height="977" alt="image" src="https://github.com/user-attachments/assets/56afd152-b406-4c71-81a7-27fcef0a1d31" />
-<img width="453" height="973" alt="image" src="https://github.com/user-attachments/assets/8080c870-65ae-433a-9160-540c71ea42ed" />
-<img width="475" height="977" alt="image" src="https://github.com/user-attachments/assets/157f5f1f-3f3e-4831-8056-e5879b3c87ae" />
-<img width="458" height="977" alt="image" src="https://github.com/user-attachments/assets/adb47e58-c0c7-4a79-9295-96855e4dd6fd" />
-<img width="447" height="985" alt="image" src="https://github.com/user-attachments/assets/4048a50b-5478-4990-a56e-e10d16cc22e7" />
-<img width="454" height="970" alt="image" src="https://github.com/user-attachments/assets/99da3240-2a97-4e49-a3f5-1ab0bfb83942" />
-<img width="452" height="955" alt="image" src="https://github.com/user-attachments/assets/01f35a02-3281-4412-b2d0-5f47e8e0dd0f" />
+<p align="center"> <img src="https://github.com/user-attachments/assets/5c5790de-74cf-499e-879b-b514404102e8" width="220"/> <img src="https://github.com/user-attachments/assets/56afd152-b406-4c71-81a7-27fcef0a1d31" width="220"/> <img src="https://github.com/user-attachments/assets/8080c870-65ae-433a-9160-540c71ea42ed" width="220"/> <img src="https://github.com/user-attachments/assets/157f5f1f-3f3e-4831-8056-e5879b3c87ae" width="220"/> </p> <p align="center"> <img src="https://github.com/user-attachments/assets/adb47e58-c0c7-4a79-9295-96855e4dd6fd" width="220"/> <img src="https://github.com/user-attachments/assets/4048a50b-5478-4990-a56e-e10d16cc22e7" width="220"/> <img src="https://github.com/user-attachments/assets/99da3240-2a97-4e49-a3f5-1ab0bfb83942" width="220"/> <img src="https://github.com/user-attachments/assets/01f35a02-3281-4412-b2d0-5f47e8e0dd0f" width="220"/> </p>
 
 ## Customer
-<img width="451" height="978" alt="image" src="https://github.com/user-attachments/assets/16787bf9-ed0e-4849-acd0-2c8e569cfb70" />
-<img width="449" height="970" alt="image" src="https://github.com/user-attachments/assets/00646fdd-cd3f-4d77-abd2-04f43c78333c" />
-<img width="448" height="966" alt="image" src="https://github.com/user-attachments/assets/3d191e42-185a-4992-a60c-affee2366d33" />
-<img width="467" height="979" alt="image" src="https://github.com/user-attachments/assets/6fcf01d2-618d-4517-98cf-80a765d2d0a8" />
-<img width="454" height="973" alt="image" src="https://github.com/user-attachments/assets/d8582d09-4695-4977-ac75-f8dc5e46d05b" />
-<img width="453" height="980" alt="image" src="https://github.com/user-attachments/assets/3469ca9e-6080-4891-a2d0-8a44a5211b0d" />
-<img width="455" height="978" alt="image" src="https://github.com/user-attachments/assets/53b7ded2-b966-449c-8fe9-540606b557c4" />
-<img width="452" height="967" alt="image" src="https://github.com/user-attachments/assets/5b0cd334-35bf-4294-a526-de0d67837e63" />
-<img width="448" height="973" alt="image" src="https://github.com/user-attachments/assets/19cda34f-4894-4d3f-9cb8-c4c6809b1886" />
+<p align="center"> <img src="https://github.com/user-attachments/assets/16787bf9-ed0e-4849-acd0-2c8e569cfb70" width="220"/> <img src="https://github.com/user-attachments/assets/00646fdd-cd3f-4d77-abd2-04f43c78333c" width="220"/> <img src="https://github.com/user-attachments/assets/3d191e42-185a-4992-a60c-affee2366d33" width="220"/> <img src="https://github.com/user-attachments/assets/6fcf01d2-618d-4517-98cf-80a765d2d0a8" width="220"/> </p> <p align="center"> <img src="https://github.com/user-attachments/assets/d8582d09-4695-4977-ac75-f8dc5e46d05b" width="220"/> <img src="https://github.com/user-attachments/assets/3469ca9e-6080-4891-a2d0-8a44a5211b0d" width="220"/> <img src="https://github.com/user-attachments/assets/53b7ded2-b966-449c-8fe9-540606b557c4" width="220"/> <img src="https://github.com/user-attachments/assets/5b0cd334-35bf-4294-a526-de0d67837e63" width="220"/> <img src="https://github.com/user-attachments/assets/19cda34f-4894-4d3f-9cb8-c4c6809b1886" width="220"/> </p>
 
 
 
