@@ -47,7 +47,7 @@ At its core, the platform empowers pineapple farmers by giving them the tools to
 
 The Farm2Screen application follows a client-server architecture. The mobile application is developed using Flutter, while Firebase is used for authentication, database management, and storage services.
 
-## 5.0 ## Technology Stack
+## 5.0 Technology Stack
 
 - Frontend: Flutter (Material 3)
 - Authentication: Firebase Authentication
