@@ -7,78 +7,27 @@ The Farm2screen is an innovative online marketplace designed to transform how fa
 At its core, the platform empowers pineapple farmers by giving them the tools to list, promote, and manage their products online without relying on middlemen. The platform aims to support real-time pricing, streamline order management, and provide broader market exposure through increased online visibility and enable farmers to expand their customer base and boost sales.
 
 2.0 App Features
-1. Daily Sales Summary Pop-Up (Entrepreneur)
+## Application Features
 
-This feature provides entrepreneurs with a quick overview of their daily business performance through a pop-up display. It highlights key information such as the total number of orders received and the total sales value for the day. This allows entrepreneurs to monitor daily sales performance without navigating to the full analytics module.
+| No. | Feature Name | User Role | Description |
+|----|-------------|----------|-------------|
+| 1 | Daily Sales Summary Pop-Up | Entrepreneur | Displays a quick summary of daily sales performance, including total orders and total sales value, allowing entrepreneurs to monitor daily business performance efficiently. |
+| 2 | My Products Screen | Entrepreneur | Allows entrepreneurs to view and manage all registered products, including price, stock quantity, and availability status, with search, filter, and add product functions. |
+| 3 | Edit Product Screen | Entrepreneur | Enables entrepreneurs to update product details such as image, name, category, price, unit, stock quantity, and description, ensuring accurate and updated product information. |
+| 4 | Announcements and Technical Information | Entrepreneur | Displays announcements and technical information related to pineapple farming and sales, including validity periods for each announcement. |
+| 5 | Sales Analytics (Summary View) | Entrepreneur | Provides an overview of sales performance, including total sales value, number of orders, and sales trends with time-based filters. |
+| 6 | Sales Analytics (Detailed Analysis) | Entrepreneur | Presents detailed analytics such as top-selling products and recent orders to help entrepreneurs analyze customer purchasing behavior. |
+| 7 | Order Details Screen | Entrepreneur | Shows complete order information, including order status, timeline, customer details, ordered products, and total payment amount. |
+| 8 | Dark Mode Feature | All Users | Provides a dark-themed interface to reduce eye strain and improve visual comfort, allowing users to switch between light and dark modes. |
+| 9 | Business Location Map View | All Users | Displays the entrepreneur’s business location using an interactive map, enabling users to view and navigate to the location easily. |
+| 10 | Pineapple Products Screen | Customer | Displays a list of available pineapple products with images, prices, categories, and stock status, including search and filter options. |
+| 11 | Product Details Screen (Overview) | Customer | Shows detailed product information such as image, price, category, stock availability, and entrepreneur details, with add-to-cart functionality. |
+| 12 | Product Details Screen (Extended Information) | Customer | Provides additional details such as sales location and entrepreneur contact options, including clickable map and social media links. |
+| 13 | Announcements and Technical Information | Customer | Displays general announcements and updates such as promotions and product availability for customers. |
+| 14 | Shopping Cart Screen | Customer | Allows customers to view selected products, adjust quantities, remove items, and see the total payment amount before checkout. |
+| 15 | Payment Screen | Customer | Handles the checkout process by displaying order summary, collecting recipient details, and supporting payment methods such as cash on delivery (COD). |
+| 16 | Pineapple Entrepreneurs List Screen | Customer | Displays a list of registered entrepreneurs with search options by name, location, or product category. |
+| 17 | Entrepreneur Details Screen | Customer | Shows detailed entrepreneur information, including contact details, business location, product categories, and available products. |
+| 18 | Customer Profile Screen | Customer | Displays customer personal information and allows profile updates, password changes, and viewing of purchase summary. |
+| 19 | Customer Purchase History Screen | Customer | Shows detailed records of past purchases, including order number, date, items purchased, and total payment amount. |
 
-2. My Products Screen (Entrepreneur)
-
-The My Products screen functions as the product management module for entrepreneurs. It displays all registered products together with their prices, stock quantities, and availability status. Search and filter options are included to help manage products efficiently. The Add New Product button allows entrepreneurs to add new products to the system.
-
-3. Edit Product Screen (Entrepreneur)
-
-This screen allows entrepreneurs to update existing product information. Users can edit the product image, product name, category, price, unit of measurement, stock quantity, and product description. After editing, the Update Product button saves the changes and updates the product information in the system.
-
-4. Announcements and Technical Information (Entrepreneur)
-
-This feature displays announcements and technical information related to pineapple farming and sales activities. Each announcement includes a title, short description, and validity period. It helps entrepreneurs stay informed about important updates, promotions, and technical notices.
-
-5. Sales Analytics – Summary View (Entrepreneur)
-
-The sales analytics summary provides an overview of the entrepreneur’s sales performance. It displays the total sales value, number of orders received, and sales trend visualization. Time filters allow users to view sales data for different periods, such as daily, monthly, or all-time performance.
-
-6. Sales Analytics – Detailed Analysis (Entrepreneur)
-
-This feature provides detailed sales insights, including top-selling products and recent orders. The visual representation of sales data helps entrepreneurs identify high-performing products and monitor customer purchasing activity effectively.
-
-7. Order Details Screen (Entrepreneur)
-
-The Order Details screen displays complete information for a selected customer order. It includes order status, order timeline, customer details, ordered products, and total payment amount. The order progress is shown step by step, allowing entrepreneurs to track orders from confirmation to completion.
-
-8. Dark Mode Feature
-
-The application includes a Dark Mode feature that provides an alternative visual theme suitable for low-light environments. Dark Mode helps reduce eye strain and improves visual comfort. Users can switch between light and dark themes based on personal preference, enhancing overall usability across the application.
-
-9. Business Location Map View
-
-This feature displays the entrepreneur’s business location using an interactive map. When users select the location information, the application opens the map view automatically. This allows customers to view and navigate to the farm or business location easily.
-
-10. Pineapple Products Screen (Customer)
-
-This screen displays a list of pineapple products available to customers. Each product card shows the product image, price, category, and stock availability. Search and category filter functions help customers browse products efficiently, and products can be added directly to the shopping cart.
-
-11. Product Details Screen – Overview (Customer)
-
-This screen presents detailed information about a selected product, including product image, price, category, available stock quantity, and entrepreneur details. Customers can add the product to their shopping cart using the Add to Cart button.
-
-12. Product Details Screen – Extended Information (Customer)
-
-This feature provides additional product details such as sales location and entrepreneur contact options. Clicking on the location opens the map view, while clickable social media icons allow customers to contact the entrepreneur through external platforms.
-
-13. Announcements and Technical Information (Customer)
-
-This screen displays general announcements and informational updates accessible to customers. Each announcement includes a title, brief description, and validity period, keeping users informed about promotions and important updates.
-
-14. Shopping Cart Screen
-
-The shopping cart screen displays selected products before checkout. Customers can increase or decrease item quantities, remove items, and view the total payment amount, which is calculated automatically. The Proceed to Payment button allows users to continue to checkout.
-
-15. Payment Screen
-
-This screen manages the payment and checkout process. It displays an order summary including selected products, subtotal, delivery charges, and total payment amount. Customers must enter recipient details and select a payment method, such as cash on delivery (COD), before confirming the order.
-
-16. Pineapple Entrepreneurs List Screen
-
-This feature displays a list of registered pineapple entrepreneurs. Customers can search entrepreneurs by name, location, or product category. Each entrepreneur card shows basic business information to help customers choose an entrepreneur easily.
-
-17. Entrepreneur Details Screen (Customer View)
-
-This screen shows detailed information about a selected entrepreneur, including contact details, business location, product categories, and products sold. Social media icons are clickable, allowing customers to communicate directly with the entrepreneur.
-
-18. Customer Profile Screen
-
-The customer profile screen displays the customer’s personal information such as name, email address, contact number, and delivery address. Customers can update their profile details or change their password. A purchase summary section shows total spending and number of orders made.
-
-19. Customer Purchase History Screen
-
-This feature displays the customer’s purchase history. Each order record includes the order number, date, purchased items, and total payment amount. Customers can view detailed information for each order to track their past purchases easily.
