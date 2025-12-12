@@ -32,3 +32,4 @@ At its core, the platform empowers pineapple farmers by giving them the tools to
 | 20 | Social Media Integration | All Users | Allows entrepreneurs to add social media links such as WhatsApp, Facebook, and Instagram. Clicking the social media icons opens the corresponding social media account through an external application or browser for direct communication. |
 
 
+3.0 Future Improvement
