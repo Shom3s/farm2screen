@@ -32,4 +32,29 @@ At its core, the platform empowers pineapple farmers by giving them the tools to
 | 20 | Social Media Integration | All Users | Allows entrepreneurs to add social media links such as WhatsApp, Facebook, and Instagram. Clicking the social media icons opens the corresponding social media account through an external application or browser for direct communication. |
 
 
-3.0 Future Improvement
+
+## 3.0 Future Enhancements
+
+- Online payment gateway integration
+- Order delivery tracking
+- Push notifications
+- Product reviews and ratings
+- Multi-language support
+
+
+
+## 4.0 System Architecture
+
+The Farm2Screen application follows a client-server architecture. The mobile application is developed using Flutter, while Firebase is used for authentication, database management, and storage services.
+
+## 5.0 ## Technology Stack
+
+- Frontend: Flutter (Material 3)
+- Authentication: Firebase Authentication
+- Database: Cloud Firestore
+- Image Storage: Supabase Storage
+- Maps Integration: Google Maps
+- State Management: Provider / Controller-based
+- Version Control: Git & GitHub
+
+
