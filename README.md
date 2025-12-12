@@ -7,7 +7,6 @@ The Farm2screen is an innovative online marketplace designed to transform how fa
 At its core, the platform empowers pineapple farmers by giving them the tools to list, promote, and manage their products online without relying on middlemen. The platform aims to support real-time pricing, streamline order management, and provide broader market exposure through increased online visibility and enable farmers to expand their customer base and boost sales.
 
 2.0 App Features
-## Application Features
 
 | No. | Feature Name | User Role | Description |
 |----|-------------|----------|-------------|
